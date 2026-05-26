@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Agent</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { background: #0f0f0f; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 20px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 10px; }
+    header h1 { font-size: 1.4rem; }
+    header span { background: #00e5a0; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
+    #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+    .message { max-width: 75%; padding: 12px 16px; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; }
+    .user { background: #6c63ff; align-self: flex-end; border-radius: 12px 12px 2px 12px; }
+    .agent { background: #1a1a2e; align-self: flex-start; border-radius: 12px 12px 12px 2px; border: 1px solid #333; }
+    .agent .label { color: #00e5a0; font-size: 0.75rem; font-weight: bold; margin-bottom: 6px; }
+    .thinking { color: #888; font-style: italic; animation: pulse 1.5s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    #input-area { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; }
+    #input { flex: 1; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 16px; border-radius: 25px; font-size: 0.95rem; outline: none; }
+    #input:focus { border-color: #6c63ff; }
+    #send { background: #6c63ff; border: none; color: #fff; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    #send:hover { background: #5a52e0; }
+    #send:disabled { background: #444; cursor: not-allowed; }
+    .suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 10px; }
+    .suggestion { background: #1a1a2e; border: 1px solid #333; color: #888; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+    .suggestion:hover { border-color: #6c63ff; color: #fff; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>🤖 AI Agent</h1>
+    <span>LIVE</span>
+  </header>
+
+  <div id="chat">
+    <div class="message agent">
+      <div class="label">AI AGENT</div>
+      Hello! I'm an autonomous AI agent. I can search the internet, do calculations, and answer questions. What do you need?
+    </div>
+  </div>
+
+  <div class="suggestions">
+    <div class="suggestion" onclick="sendSuggestion(this)">🔍 Latest AI news</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">🧮 Calculate 15% of 8500</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">🕐 What time is it?</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">📈 What is LangGraph?</div>
+  </div>
+
+  <div id="input-area">
+    <input id="input" type="text" placeholder="Ask me anything..." />
+    <button id="send" onclick="sendMessage()">Send</button>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+    const input = document.getElementById("input");
+    const send = document.getElementById("send");
+
+    input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+
+    function sendSuggestion(el) {
+      input.value = el.textContent.slice(2);
+      sendMessage();
+    }
+
+    function addMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = `message ${role}`;
+      if (role === "agent") {
+        div.innerHTML = `<div class="label">AI AGENT</div>${text}`;
+      } else {
+        div.textContent = text;
+      }
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+      return div;
+    }
+
+    async function sendMessage() {
+      const text = input.value.trim();
+      if (!text) return;
+
+      addMessage("user", text);
+      input.value = "";
+      send.disabled = true;
+
+      const thinking = addMessage("agent", '<span class="thinking">🧠 Agent is thinking and searching...</span>');
+
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text })
+        });
+
+        const data = await res.json();
+        thinking.innerHTML = `<div class="label">AI AGENT</div>${data.response}`;
+      } catch (err) {
+        thinking.innerHTML = `<div class="label">AI AGENT</div>Error — is server running?`;
+      }
+
+      send.disabled = false;
+      input.focus();
+    }
+  </script>
+</body>
+</html>
