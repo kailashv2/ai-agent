@@ -5,7 +5,7 @@ import httpx
 import pytz
 import os
 
-# --- Search Tools ---
+
 def get_search_tool():
     return TavilySearch(
         max_results=8,
@@ -21,7 +21,7 @@ def get_general_search_tool():
         tavily_api_key=os.getenv("TAVILY_API_KEY")
     )
 
-# --- Time Tool ---
+
 @tool
 def get_current_time(timezone: str = "Asia/Kolkata") -> str:
     """Returns current date and time. Optionally pass a timezone like 'America/New_York' or 'Asia/Kolkata'."""
@@ -33,7 +33,7 @@ def get_current_time(timezone: str = "Asia/Kolkata") -> str:
         now = datetime.now()
         return f"Current date and time: {now.strftime('%A, %d %B %Y %I:%M %p')}"
 
-# --- Calculator Tool ---
+
 @tool
 def calculate(expression: str) -> str:
     """
@@ -53,7 +53,7 @@ def calculate(expression: str) -> str:
     except Exception as e:
         return f"Could not calculate: {str(e)}"
 
-# --- Weather Tool ---
+
 @tool
 def get_weather(city: str) -> str:
     """Gets current weather for any city. Example: 'Mumbai', 'Delhi', 'London'."""
@@ -80,7 +80,7 @@ def get_weather(city: str) -> str:
     except Exception as e:
         return f"Could not fetch weather for {city}. Try a different city name."
 
-# --- Code Execution Tool ---
+
 @tool
 def run_python_code(code: str) -> str:
     """
@@ -119,7 +119,7 @@ def run_python_code(code: str) -> str:
     finally:
         sys.stdout = sys.__stdout__
 
-# --- Currency Tool ---
+
 @tool
 def convert_currency(amount_and_currencies: str) -> str:
     """
