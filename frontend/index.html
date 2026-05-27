@@ -7,71 +7,106 @@
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { background: #0f0f0f; color: #fff; font-family: 'Segoe UI', sans-serif; height: 100vh; display: flex; flex-direction: column; }
-    header { padding: 20px; border-bottom: 1px solid #222; display: flex; align-items: center; gap: 10px; }
-    header h1 { font-size: 1.4rem; }
-    header span { background: #00e5a0; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.75rem; font-weight: bold; }
-    #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
-    .message { max-width: 75%; padding: 12px 16px; border-radius: 12px; line-height: 1.6; font-size: 0.95rem; }
+    header { padding: 16px 20px; border-bottom: 1px solid #222; display: flex; align-items: center; justify-content: space-between; }
+    header h1 { font-size: 1.3rem; display: flex; align-items: center; gap: 8px; }
+    .badge { background: #00e5a0; color: #000; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: bold; }
+    #chat { flex: 1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .message { max-width: 78%; padding: 12px 16px; border-radius: 12px; line-height: 1.65; font-size: 0.93rem; word-break: break-word; }
     .user { background: #6c63ff; align-self: flex-end; border-radius: 12px 12px 2px 12px; }
-    .agent { background: #1a1a2e; align-self: flex-start; border-radius: 12px 12px 12px 2px; border: 1px solid #333; }
-    .agent .label { color: #00e5a0; font-size: 0.75rem; font-weight: bold; margin-bottom: 6px; }
+    .agent { background: #1a1a2e; align-self: flex-start; border-radius: 12px 12px 12px 2px; border: 1px solid #2a2a4a; }
+    .agent .label { color: #00e5a0; font-size: 0.72rem; font-weight: bold; margin-bottom: 6px; letter-spacing: 0.5px; }
     .thinking { color: #888; font-style: italic; animation: pulse 1.5s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
-    #input-area { padding: 20px; border-top: 1px solid #222; display: flex; gap: 10px; }
-    #input { flex: 1; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 16px; border-radius: 25px; font-size: 0.95rem; outline: none; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+    pre { background: #0d1117; border: 1px solid #30363d; border-radius: 8px; padding: 12px; margin-top: 8px; overflow-x: auto; font-size: 0.85rem; color: #e6edf3; white-space: pre-wrap; }
+    code { font-family: 'Consolas', 'Courier New', monospace; }
+    #input-area { padding: 16px 20px; border-top: 1px solid #222; display: flex; gap: 10px; align-items: center; }
+    #input { flex: 1; background: #1a1a1a; border: 1px solid #333; color: #fff; padding: 12px 18px; border-radius: 25px; font-size: 0.93rem; outline: none; resize: none; max-height: 120px; }
     #input:focus { border-color: #6c63ff; }
-    #send { background: #6c63ff; border: none; color: #fff; padding: 12px 24px; border-radius: 25px; cursor: pointer; font-size: 0.95rem; transition: all 0.2s; }
+    #send { background: #6c63ff; border: none; color: #fff; padding: 12px 22px; border-radius: 25px; cursor: pointer; font-size: 0.93rem; transition: background 0.2s; white-space: nowrap; }
     #send:hover { background: #5a52e0; }
-    #send:disabled { background: #444; cursor: not-allowed; }
+    #send:disabled { background: #333; cursor: not-allowed; }
     .suggestions { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 20px 10px; }
-    .suggestion { background: #1a1a2e; border: 1px solid #333; color: #888; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.82rem; transition: all 0.2s; }
+    .suggestion { background: #1a1a2e; border: 1px solid #2a2a4a; color: #999; padding: 6px 14px; border-radius: 20px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; }
     .suggestion:hover { border-color: #6c63ff; color: #fff; }
+    #session-info { font-size: 0.7rem; color: #444; }
   </style>
 </head>
 <body>
   <header>
-    <h1>🤖 AI Agent</h1>
-    <span>LIVE</span>
+    <h1>&#129302; AI Agent <span class="badge">LIVE</span></h1>
+    <span id="session-info">New Session</span>
   </header>
 
   <div id="chat">
     <div class="message agent">
       <div class="label">AI AGENT</div>
-      Hello! I'm an autonomous AI agent. I can search the internet, do calculations, and answer questions. What do you need?
+      Hello! I'm your AI Agent. I can search the web, check weather, run Python code, do math, convert currency, and remember our full conversation. What do you need?
     </div>
   </div>
 
   <div class="suggestions">
-    <div class="suggestion" onclick="sendSuggestion(this)">🔍 Latest AI news</div>
-    <div class="suggestion" onclick="sendSuggestion(this)">🧮 Calculate 15% of 8500</div>
-    <div class="suggestion" onclick="sendSuggestion(this)">🕐 What time is it?</div>
-    <div class="suggestion" onclick="sendSuggestion(this)">📈 What is LangGraph?</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">Weather in Delhi</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">Calculate 18% of 25000</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">100 USD to INR</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">Write fibonacci in Python</div>
+    <div class="suggestion" onclick="sendSuggestion(this)">Latest AI news</div>
   </div>
 
   <div id="input-area">
-    <input id="input" type="text" placeholder="Ask me anything..." />
+    <textarea id="input" placeholder="Ask me anything..." rows="1"></textarea>
     <button id="send" onclick="sendMessage()">Send</button>
   </div>
 
   <script>
-    const chat = document.getElementById("chat");
-    const input = document.getElementById("input");
-    const send = document.getElementById("send");
+    let sessionId = sessionStorage.getItem('agent_session_id');
+    if (!sessionId) {
+      sessionId = 'session_' + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem('agent_session_id', sessionId);
+    }
+    document.getElementById('session-info').textContent = 'Session: ' + sessionId.slice(-6);
 
-    input.addEventListener("keydown", e => { if (e.key === "Enter") sendMessage(); });
+    const chat = document.getElementById('chat');
+    const input = document.getElementById('input');
+    const sendBtn = document.getElementById('send');
+
+    input.addEventListener('input', () => {
+      input.style.height = 'auto';
+      input.style.height = Math.min(input.scrollHeight, 120) + 'px';
+    });
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendMessage();
+      }
+    });
 
     function sendSuggestion(el) {
-      input.value = el.textContent.slice(2);
+      input.value = el.textContent.trim();
       sendMessage();
     }
 
-    function addMessage(role, text) {
-      const div = document.createElement("div");
-      div.className = `message ${role}`;
-      if (role === "agent") {
-        div.innerHTML = `<div class="label">AI AGENT</div>${text}`;
+    function escapeHtml(text) {
+      return text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    function formatResponse(text) {
+      text = text.replace(/```(\w+)?\n?([\s\S]*?)```/g, (_, lang, code) => {
+        return '<pre><code>' + escapeHtml(code.trim()) + '</code></pre>';
+      });
+      text = text.replace(/`([^`]+)`/g, '<code style="background:#1e1e2e;padding:2px 6px;border-radius:4px;font-family:monospace;color:#79c0ff">$1</code>');
+      text = text.replace(/\*\*(.*?)\*\*/g, '<strong style="color:#e2e8f0">$1</strong>');
+      text = text.replace(/\n/g, '<br>');
+      return text;
+    }
+
+    function addMessage(role, content, isThinking = false) {
+      const div = document.createElement('div');
+      div.className = 'message ' + role;
+      if (role === 'agent') {
+        div.innerHTML = '<div class="label">AI AGENT</div><div class="' + (isThinking ? 'thinking' : '') + '">' + (isThinking ? content : formatResponse(content)) + '</div>';
       } else {
-        div.textContent = text;
+        div.textContent = content;
       }
       chat.appendChild(div);
       chat.scrollTop = chat.scrollHeight;
@@ -79,30 +114,42 @@
     }
 
     async function sendMessage() {
-      const text = input.value.trim();
-      if (!text) return;
+      const msg = input.value.trim();
+      if (!msg || sendBtn.disabled) return;
 
-      addMessage("user", text);
-      input.value = "";
-      send.disabled = true;
+      addMessage('user', msg);
+      input.value = '';
+      input.style.height = 'auto';
+      sendBtn.disabled = true;
 
-      const thinking = addMessage("agent", '<span class="thinking">🧠 Agent is thinking and searching...</span>');
+      const thinkingDiv = addMessage('agent', 'Thinking...', true);
 
       try {
-        const res = await fetch("/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ message: text })
+        const res = await fetch('/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, session_id: sessionId })
         });
 
         const data = await res.json();
-        thinking.innerHTML = `<div class="label">AI AGENT</div>${data.response}`;
+
+        if (data.session_id) {
+          sessionId = data.session_id;
+          sessionStorage.setItem('agent_session_id', sessionId);
+          document.getElementById('session-info').textContent = 'Session: ' + sessionId.slice(-6);
+        }
+
+        thinkingDiv.querySelector('div:last-child').className = '';
+        thinkingDiv.querySelector('div:last-child').innerHTML = formatResponse(data.response);
+
       } catch (err) {
-        thinking.innerHTML = `<div class="label">AI AGENT</div>Error — is server running?`;
+        thinkingDiv.querySelector('div:last-child').className = '';
+        thinkingDiv.querySelector('div:last-child').textContent = 'Connection error. Is the server running?';
       }
 
-      send.disabled = false;
+      sendBtn.disabled = false;
       input.focus();
+      chat.scrollTop = chat.scrollHeight;
     }
   </script>
 </body>
