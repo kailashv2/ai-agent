@@ -120,6 +120,11 @@
       return div;
     }
 
+    
+    setInterval(() => {
+      fetch('/health').catch(() => {});
+    }, 14 * 60 * 1000);
+
     async function sendMessage() {
       const msg = input.value.trim();
       if (!msg || sendBtn.disabled) return;
