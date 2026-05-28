@@ -86,6 +86,8 @@ Open http://127.0.0.1:8000
 ---
 
 ## 📁 Project Structure
+
+```
 ai-agent/
 ├── backend/
 │   ├── agent.py         # LLM provider management, routing, code handling
@@ -99,23 +101,25 @@ ai-agent/
 ├── Dockerfile
 ├── .env.example
 └── README.md
-
----
+```
 
 ## 🧠 Architecture
-User Message
-↓
-Router
-├── Code Request? → LLM generates code → Execute → Auto-fix if error → Return output
-├── Needs Tools? → LangGraph ReAct Agent → Tools (Search/Weather/Calculator/Currency)
-└── General? → Direct LLM response (fastest)
-↓
-Multi-Provider LLM Fallback
-Groq (primary) → Gemini (secondary) → OpenRouter (tertiary)
 
----
+```
+User Message
+     ↓
+  Router
+  ├── Code Request? → LLM generates code → Execute → Auto-fix if error → Return output
+  ├── Needs Tools?  → LangGraph ReAct Agent → Tools (Search/Weather/Calculator/Currency)
+  └── General?      → Direct LLM response (fastest)
+     ↓
+Multi-Provider LLM Fallback
+  Groq (primary) → Gemini (secondary) → OpenRouter (tertiary)
+```
 
 ## 💬 Example Queries
+
+```
 "What is the latest news about AI?"
 "Write fibonacci series in Python"
 "Weather in Mumbai"
@@ -126,9 +130,7 @@ Groq (primary) → Gemini (secondary) → OpenRouter (tertiary)
 "Write bubble sort in C++"
 "Latest NEET 2026 news"
 "What is quantum computing?"
-
----
-
+```
 ## 🚀 Deployment
 
 ### Render (Recommended)
