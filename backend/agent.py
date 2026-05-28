@@ -2,7 +2,11 @@ from langchain_groq import ChatGroq
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langgraph.prebuilt import create_react_agent
+try:
+    from langchain.agents import create_react_agent as _cra
+    from langgraph.prebuilt import create_react_agent
+except ImportError:
+    from langgraph.prebuilt import create_react_agent
 from tools import get_all_tools, run_python_code
 from dotenv import load_dotenv
 import re
@@ -10,14 +14,14 @@ import os
 
 load_dotenv()
 
-SYSTEM_PROMPT = """You are a world-class AI agent — expert in coding, research, analysis, math, science, history, finance, law basics, medicine basics, current events, creative writing, and more.
+SYSTEM_PROMPT = """You are a world-class AI agent - expert in coding, research, analysis, math, science, history, finance, law basics, medicine basics, current events, creative writing, and more.
 
 TOOLS AVAILABLE:
 - search_tool: Breaking news, current events, today's updates
 - general_search_tool: Facts, people, places, companies, how-to, explanations
 - get_weather: Live weather for any city worldwide
 - calculate: Math, percentages, unit conversions, formulas
-- run_python_code: Execute Python — algorithms, data processing, simulations
+- run_python_code: Execute Python - algorithms, data processing, simulations
 - convert_currency: Live exchange rates for all major currencies
 
 BEHAVIOR RULES:
@@ -34,17 +38,67 @@ BEHAVIOR RULES:
 11. Be direct, structured, accurate. Use bullet points for lists, headers for long answers."""
 
 CODE_KEYWORDS = {
-    "write code", "code", "program", "script", "fibonacci", "algorithm",
-    "function", "implement", "banao", "likho", "code karo", "bana do",
-    "factorial", "prime", "palindrome", "reverse", "linked list", "binary",
-    "recursion", "loop", "array", "matrix", "pattern", "series", "sorting",
-    "searching", "class", "object", "inheritance", "api", "fetch", "crud",
-    "rest", "regex", "parse", "encrypt", "decrypt", "hash", "stack", "queue",
-    "tree", "graph", "dynamic programming", "greedy", "backtracking", "thread",
-    "async", "decorator", "generator", "iterator", "lambda", "closure",
-    "interview question", "data structure", "leetcode", "hackerrank",
-    "bubble sort", "merge sort", "quick sort", "binary search", "dfs", "bfs",
-    "number system", "calculator", "todo", "snake game", "tic tac toe"
+    # General coding triggers
+    "write code", "write a code", "write program", "write script",
+    "code karo", "code banao", "bana do code", "likho code",
+    "write a function", "write a class", "write a script",
+    "write a", "create a", "build a", "make a", "implement",
+    "code of", "code for", "example of", "show me code",
+    "show me", "give me code", "give code", "deta code",
+
+    # Algorithms and data structures
+    "fibonacci", "factorial", "palindrome", "linked list",
+    "bubble sort", "merge sort", "quick sort", "binary search",
+    "dynamic programming", "dfs", "bfs", "leetcode", "hackerrank",
+    "binary tree", "avl tree", "heap", "trie", "graph traversal",
+    "dijkstra", "knapsack", "matrix", "recursion", "backtracking",
+    "sliding window", "two pointer", "memoization",
+
+    # Web and backend
+    "rest api", "restful api", "crud api", "graphql api",
+    "flask api", "fastapi", "django", "express server",
+    "spring boot", "node server", "websocket", "middleware",
+    "authentication", "jwt", "oauth", "login system",
+    "microservice", "docker", "kubernetes",
+
+    # Frontend
+    "react component", "vue component", "angular component",
+    "html page", "css style", "landing page", "navbar",
+    "login form", "signup form", "dashboard ui",
+    "responsive design", "tailwind", "bootstrap",
+
+    # Database
+    "sql query", "mongodb query", "database schema",
+    "orm model", "migration", "crud operation",
+    "join query", "aggregation", "index",
+
+    # DevOps and tools
+    "dockerfile", "docker compose", "github actions",
+    "ci cd pipeline", "nginx config", "bash script",
+    "cron job", "makefile", "terraform",
+
+    # AI and ML
+    "machine learning code", "neural network code", "deep learning code",
+    "train model code", "linear regression code", "classification code",
+    "clustering code", "nlp code", "chatbot code", "recommendation system code",
+
+    # Games
+    "snake game", "tic tac toe", "chess", "tetris",
+    "todo app", "calculator app", "weather app", "chat app",
+
+    # Language specific
+    "python code", "java code", "javascript code", "cpp code",
+    "c++ code", "golang code", "rust code", "kotlin code",
+    "typescript code", "swift code", "php code", "ruby code",
+    "scala code", "dart code", "r code", "matlab code",
+
+    # New tech
+    "blockchain", "smart contract", "solidity", "web3",
+    "llm", "langchain", "openai api", "huggingface",
+    "pytorch", "tensorflow", "keras", "numpy", "pandas",
+    "data visualization", "matplotlib", "seaborn",
+    "api integration", "webhook", "rate limiting", "caching",
+    "redis", "celery", "kafka", "rabbitmq",
 }
 
 NON_PYTHON_LANGUAGES = {
@@ -55,67 +109,53 @@ NON_PYTHON_LANGUAGES = {
 }
 
 GROQ_MODELS = [
+    "llama-3.3-70b-versatile",
+    "llama-3.1-70b-versatile",
+    "llama3-70b-8192",
     "llama-3.1-8b-instant",
-    "llama3-8b-8192",
-    "gemma2-9b-it",
-    "mixtral-8x7b-32768",
 ]
 
 OPENROUTER_MODELS = [
-    "mistralai/mistral-7b-instruct:free",
-    "qwen/qwen-2-7b-instruct:free",
-    "google/gemma-2-9b-it:free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "qwen/qwen3-coder:free",
+    "openai/gpt-oss-120b:free",
     "meta-llama/llama-3.2-3b-instruct:free",
 ]
 
 conversation_store = {}
 
 
-def get_llm():
-    groq_key = os.getenv("GROQ_API_KEY")
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+def _build_groq(model: str) -> ChatGroq:
+    return ChatGroq(
+        model=model,
+        temperature=0.1,
+        groq_api_key=os.getenv("GROQ_API_KEY")
+    )
 
-    if groq_key:
-        for model in GROQ_MODELS:
-            try:
-                return ChatGroq(model=model, temperature=0.1, groq_api_key=groq_key)
-            except Exception:
-                continue
 
-    if gemini_key:
-        try:
-            return ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
-                temperature=0.1,
-                google_api_key=gemini_key
-            )
-        except Exception:
-            pass
+def _build_gemini() -> ChatGoogleGenerativeAI:
+    return ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash",
+        temperature=0.1,
+        google_api_key=os.getenv("GEMINI_API_KEY")
+    )
 
-    if openrouter_key:
-        for model in OPENROUTER_MODELS:
-            try:
-                return ChatOpenAI(
-                    model=model,
-                    temperature=0.1,
-                    openai_api_key=openrouter_key,
-                    openai_api_base="https://openrouter.ai/api/v1",
-                )
-            except Exception:
-                continue
 
-    raise RuntimeError("All LLM providers exhausted. Check your API keys in .env")
+def _build_openrouter(model: str) -> ChatOpenAI:
+    return ChatOpenAI(
+        model=model,
+        temperature=0.1,
+        openai_api_key=os.getenv("OPENROUTER_API_KEY"),
+        openai_api_base="https://openrouter.ai/api/v1",
+    )
 
 
 def is_code_request(message: str) -> bool:
-    msg = message.lower()
-    return any(kw in msg for kw in CODE_KEYWORDS)
+    return any(kw in message.lower() for kw in CODE_KEYWORDS)
 
 
 def is_python_executable(message: str) -> bool:
-    msg = message.lower()
-    return not any(lang in msg for lang in NON_PYTHON_LANGUAGES)
+    return not any(lang in message.lower() for lang in NON_PYTHON_LANGUAGES)
 
 
 def detect_language(message: str) -> str:
@@ -134,8 +174,8 @@ def extract_code_block(text: str) -> str:
     code_lines = [
         l for l in lines
         if not l.strip().startswith((
-            "Here", "This", "The ", "Sure", "I ", "Let", "Below",
-            "Above", "Note", "You", "We", "To "
+            "Here", "This", "The ", "Sure", "I ", "Let",
+            "Below", "Above", "Note", "You", "We", "To "
         ))
     ]
     return "\n".join(code_lines).strip()
@@ -153,56 +193,72 @@ def format_code_response(raw: str, lang: str, execution_result: str = None) -> s
 def handle_python_request(user_message: str, llm) -> str:
     prompt = (
         f"Write clean, complete, working Python code for: {user_message}\n\n"
-        "Requirements:\n"
         "- Return ONLY code inside a ```python block\n"
-        "- Include print() statements to demonstrate output\n"
-        "- Handle edge cases properly\n"
+        "- Include print() statements to show output\n"
+        "- Handle edge cases\n"
         "- No text outside the code block"
     )
-    response = llm.invoke([HumanMessage(content=prompt)])
-    raw = response.content
+    raw = llm.invoke([HumanMessage(content=prompt)]).content
     code = extract_code_block(raw)
 
     if not code:
         return raw
 
-    execution_result = run_python_code.invoke({"code": code})
+    result = run_python_code.invoke({"code": code})
 
-    if "Error:" in execution_result:
+    if "Error:" in result:
         fix_prompt = (
-            f"This Python code has an error:\n```python\n{code}\n```\n"
-            f"Error: {execution_result}\n\n"
-            "Fix it. Return ONLY the corrected ```python block. No explanations."
+            f"Fix this Python code:\n```python\n{code}\n```\n"
+            f"Error: {result}\n"
+            "Return ONLY the corrected ```python block."
         )
-        fixed = llm.invoke([HumanMessage(content=fix_prompt)])
-        fixed_code = extract_code_block(fixed.content)
+        fixed_raw = llm.invoke([HumanMessage(content=fix_prompt)]).content
+        fixed_code = extract_code_block(fixed_raw)
         if fixed_code:
-            execution_result = run_python_code.invoke({"code": fixed_code})
-            return format_code_response(fixed.content, "python", execution_result)
+            result = run_python_code.invoke({"code": fixed_code})
+            return format_code_response(fixed_raw, "python", result)
 
-    return format_code_response(raw, "python", execution_result)
+    return format_code_response(raw, "python", result)
 
 
 def handle_other_language_request(user_message: str, lang: str, llm) -> str:
     prompt = (
-        f"Write clean, production-quality {lang} code for: {user_message}\n\n"
-        "Requirements:\n"
+        f"Write clean, production-quality {lang} code for: {user_message}\n"
         f"- Return code inside a ```{lang} block\n"
-        "- Follow best practices and conventions for this language\n"
-        "- Add brief inline comments for complex logic\n"
-        "- After the code block, write 2-3 lines: what it does and how to compile/run it"
+        "- Follow best practices for this language\n"
+        "- Brief inline comments for complex logic\n"
+        "- After code: 2 lines on what it does and how to run it"
     )
-    response = llm.invoke([HumanMessage(content=prompt)])
-    return response.content
+    return llm.invoke([HumanMessage(content=prompt)]).content
 
 
 def handle_code_request(user_message: str, llm) -> str:
     if is_python_executable(user_message):
         return handle_python_request(user_message, llm)
-    else:
-        lang = detect_language(user_message)
-        return handle_other_language_request(user_message, lang, llm)
+    return handle_other_language_request(user_message, detect_language(user_message), llm)
 
+
+def build_messages(session_id: str) -> list:
+    history = conversation_store[session_id][-4:]
+    trimmed = []
+    for msg in history:
+        content = msg.content[:400] + "..." if len(msg.content) > 400 else msg.content
+        trimmed.append(msg.__class__(content=content))
+    return [SystemMessage(content=SYSTEM_PROMPT)] + trimmed
+
+
+REALTIME_KEYWORDS = {
+    "news", "latest", "current", "today", "yesterday", "recent",
+    "price", "stock", "weather", "score", "who is", "what happened",
+    "when did", "where is", "result", "election", "match", "exam",
+    "update", "announce", "launched", "released", "died", "arrested",
+    "won", "lost", "rupee", "dollar", "usd", "inr", "convert",
+    "calculate", "percent", "temperature", "humidity", "rate",
+}
+
+def needs_tools(message: str) -> bool:
+    msg = message.lower()
+    return any(kw in msg for kw in REALTIME_KEYWORDS)
 
 def run_agent(session_id: str, user_message: str) -> str:
     if session_id not in conversation_store:
@@ -210,21 +266,43 @@ def run_agent(session_id: str, user_message: str) -> str:
 
     conversation_store[session_id].append(HumanMessage(content=user_message))
 
-    try:
-        llm = get_llm()
+    all_providers = []
+    if os.getenv("GROQ_API_KEY"):
+        for m in GROQ_MODELS:
+            all_providers.append(("groq", m))
+    if os.getenv("GEMINI_API_KEY"):
+        all_providers.append(("gemini", None))
+    if os.getenv("OPENROUTER_API_KEY"):
+        for m in OPENROUTER_MODELS:
+            all_providers.append(("openrouter", m))
 
-        if is_code_request(user_message):
-            response = handle_code_request(user_message, llm)
-        else:
-            messages = [SystemMessage(content=SYSTEM_PROMPT)] + conversation_store[session_id][-20:]
-            agent = create_react_agent(llm, get_all_tools())
-            result = agent.invoke({"messages": messages})
-            response = result["messages"][-1].content
+    last_error = None
 
-    except RuntimeError:
-        response = "All AI providers are currently unavailable. Please check your API keys."
-    except Exception as e:
-        response = f"Something went wrong: {str(e)}"
+    for provider, model in all_providers:
+        try:
+            if provider == "groq":
+                llm = _build_groq(model)
+            elif provider == "gemini":
+                llm = _build_gemini()
+            else:
+                llm = _build_openrouter(model)
 
+            if is_code_request(user_message):
+                response = handle_code_request(user_message, llm)
+            elif needs_tools(user_message):
+                agent = create_react_agent(llm, get_all_tools())
+                result = agent.invoke({"messages": build_messages(session_id)})
+                response = result["messages"][-1].content
+            else:
+                response = llm.invoke(build_messages(session_id)).content
+
+            conversation_store[session_id].append(AIMessage(content=response))
+            return response
+
+        except Exception as e:
+            last_error = str(e)
+            continue
+
+    response = "All providers unavailable. Please try again in a few minutes."
     conversation_store[session_id].append(AIMessage(content=response))
     return response
